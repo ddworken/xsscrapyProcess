@@ -84,7 +84,7 @@ def removeDuplicateInjectionPoints(data):
                 if injPoint not in found:
                     found.append(injPoint)
                     newData.append(vulnArr)
-            else:
+            else:                                   #Better heuristics needed for duplicate URLs (Levenshtein?)
                 url = vulnArr[1]['response URL']
                 if 'end of url' in injPoint:
                     if url not in foundEndURL:
@@ -98,12 +98,26 @@ def removeDuplicateInjectionPoints(data):
             pass
     return newData
 
+def removeUserAgentVulns(data):
+    newData = []
+    for vulnArr in data:
+        try:
+            injPoint = vulnArr[5]['Injection point']
+            if 'Referer' not in injPoint:
+                newData.append(vulnArr)
+        except:
+            pass
+    return newData
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("file", help="File name to parse")
     parser.add_argument("--removeURLs", help="Remove URLs containing a string")
     parser.add_argument("--onlyURLs", help="Only display URLs containing a string")
     parser.add_argument("--removeDuplicateInjections", help="Automatically removes duplicate injection points", action='store_true')
+    parser.add_argument("--removeUserAgentVulns", help="Automatically removes vulnerabilities based on injecting into the user agent field. ", action='store_true')
+    parser.add_argument("--output", help="Specifies an output file for the new vulnerabilities")
+    parser.add_argument("--quiet", help="Silences the program", action='store_true')
     args = parser.parse_args()
     data = readFileToArray(args.file)
     if args.removeURLs:
@@ -112,5 +126,12 @@ if __name__ == '__main__':
         data = removeURLsNotContainingString(data, args.onlyURLs)
     if args.removeDuplicateInjections:
         data = removeDuplicateInjectionPoints(data)
-    for line in exportToOriginalFormat(data):
-        print line
+    if args.removeUserAgentVulns:
+        data = removeDuplicateInjectionPoints(data)
+    if args.output:
+        outputFile=open(args.output, 'w+')
+        for line in exportToOriginalFormat(data):
+            outputFile.write(line + '\n')
+    if not args.quiet:
+        for line in exportToOriginalFormat(data):
+            print line
